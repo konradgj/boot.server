@@ -20,6 +20,7 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app", handlerFileServer))
 
 	mux.HandleFunc("GET /api/healthz", handlerReady)
+	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirpy)
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
