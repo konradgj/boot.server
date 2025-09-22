@@ -20,5 +20,21 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
+	if cfg.platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("Reset only allowed in dev environment"))
+		return
+	}
+
+	err := cfg.database.DeleteUsers(req.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Failed to reset the database: " + err.Error()))
+		return
+	}
+
 	cfg.fileserverHits.Store(0)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hits reset to 0 and database reset to initial state"))
 }
