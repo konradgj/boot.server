@@ -16,11 +16,12 @@ func main() {
 	apiCfg := apiConfig{}
 
 	mux := http.NewServeMux()
-	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(rootPath)))))
+	handlerFileServer := apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(rootPath)))
+	mux.Handle("/app/", http.StripPrefix("/app", handlerFileServer))
 
-	mux.HandleFunc("/healthz", handlerReady)
-	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("/reset", apiCfg.handlerReset)
+	mux.HandleFunc("GET /healthz", handlerReady)
+	mux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("POST /reset", apiCfg.handlerReset)
 
 	server := &http.Server{
 		Addr:    ":" + port,
