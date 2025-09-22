@@ -10,7 +10,8 @@ func main() {
 	rootPath := "."
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(rootPath)))
+	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir(rootPath))))
+	mux.HandleFunc("/healthz", handleReady)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -18,4 +19,9 @@ func main() {
 	}
 
 	log.Fatal(server.ListenAndServe())
+}
+
+func handleReady(w http.ResponseWriter, req *http.Request) {
+	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
