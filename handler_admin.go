@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) handlerAdminMetrics(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	html := `
 <html>
@@ -19,7 +19,7 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(body))
 }
 
-func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) handlerAdminReset(w http.ResponseWriter, req *http.Request) {
 	if cfg.platform != "dev" {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("Reset only allowed in dev environment"))
