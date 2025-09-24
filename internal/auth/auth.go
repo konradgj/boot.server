@@ -1,9 +1,19 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+)
+
+type TokenType string
+
+const (
+	TokenTypeAccess TokenType = "chirpy-access"
 )
 
 func HashPassword(password string) (string, error) {
@@ -21,4 +31,56 @@ func CheckPasswordHash(password, hash string) error {
 		return fmt.Errorf("incorrect password")
 	}
 	return nil
+}
+
+func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+	claims := jwt.RegisteredClaims{
+		Issuer:    string(TokenTypeAccess),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresIn)),
+		Subject:   userID.String(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString([]byte(tokenSecret))
+	if err != nil {
+		return "", fmt.Errorf("could not sign token: %w", err)
+	}
+	return ss, nil
+}
+
+func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+	claims := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(tokenSecret), nil
+	})
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	if !token.Valid {
+		return uuid.Nil, fmt.Errorf("invalid token")
+	}
+
+	userIdString, err := token.Claims.GetSubject()
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	issuer, err := token.Claims.GetIssuer()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if issuer != string(TokenTypeAccess) {
+		return uuid.Nil, errors.New("invalid issuer")
+	}
+
+	userId, err := uuid.Parse(userIdString)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID in token: %w", err)
+	}
+	return userId, nil
 }
