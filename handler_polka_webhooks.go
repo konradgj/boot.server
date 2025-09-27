@@ -7,13 +7,20 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/konradgj/boot.server/internal/auth"
 	"github.com/konradgj/boot.server/internal/database"
 )
 
 func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, req *http.Request) {
+	_, err := auth.GetAPIKey(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "invalid api key", err)
+		return
+	}
+
 	reqBody := PolkaWebhook{}
 
-	err := json.NewDecoder(req.Body).Decode(&reqBody)
+	err = json.NewDecoder(req.Body).Decode(&reqBody)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
