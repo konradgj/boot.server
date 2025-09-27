@@ -19,5 +19,5 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	respondWithCode(w, http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
