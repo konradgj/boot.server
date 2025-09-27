@@ -6,10 +6,16 @@ import (
 	"time"
 
 	"github.com/konradgj/boot.server/internal/auth"
+	"github.com/konradgj/boot.server/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	reqBody := UserLogin{}
+	type response struct {
+		User
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
+	}
 
 	err := json.NewDecoder(req.Body).Decode(&reqBody)
 	if err != nil {
@@ -29,21 +35,31 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	expiresIn := time.Hour
-	if reqBody.ExpiresIn != nil && time.Duration(*reqBody.ExpiresIn)*time.Second < time.Hour {
-		expiresIn = time.Duration(*reqBody.ExpiresIn) * time.Second
-	}
-	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expiresIn)
+	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "could not create token", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+	rToken := auth.MakeRefreshToken()
+
+	refreshToken, err := cfg.database.CreateRefreshToken(req.Context(), database.CreateRefreshTokenParams{
+		Token:     rToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(60 * 24 * time.Hour),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "could not create refresh token: %w", err)
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		User: User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+		Token:        token,
+		RefreshToken: refreshToken.Token,
 	})
 }

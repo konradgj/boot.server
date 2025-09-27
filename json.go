@@ -32,3 +32,7 @@ func respondWithError(w http.ResponseWriter, statusCode int, msg string, err err
 	}
 	respondWithJSON(w, statusCode, responseError{Error: msg})
 }
+
+func respondWithCode(w http.ResponseWriter, statusCode int) {
+	w.WriteHeader(statusCode)
+}
