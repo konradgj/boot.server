@@ -31,5 +31,15 @@ WHERE
 RETURNing
     *;
 
+-- name: UpdateUserChirpyRed :one
+UPDATE users
+SET
+    is_chirpy_red = $2,
+    updated_at = NOW()
+WHERE
+    id = $1
+RETURNING
+    *;
+
 -- name: DeleteUsers :exec
 DELETE FROM users;
